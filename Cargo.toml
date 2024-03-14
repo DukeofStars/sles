@@ -1,0 +1,12 @@
+[package]
+name = "sles"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ariadne = "0.4.0"
+logos = "0.14.0"
+color-eyre = "0.6.2"
+thiserror = "1.0.57"
+nalgebra = "0.32.4"
+chumsky = { version = "0.9.3", default-features = false, features = ["std", "ahash"] }
