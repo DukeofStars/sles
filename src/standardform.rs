@@ -37,7 +37,7 @@ impl TryFrom<Expr> for StandardForm {
                 return Err(Error::NotStandardForm);
             }
 
-            let rhs = rhs.terms.get(0).unwrap();
+            let rhs = rhs.terms.first().unwrap();
             if !rhs.pronumerals.is_empty() {
                 dbg!();
                 return Err(Error::NotStandardForm);
@@ -53,7 +53,7 @@ impl TryFrom<Expr> for StandardForm {
                 dbg!();
                 return Err(Error::NotStandardForm);
             }
-            let pronumeral = term.pronumerals.get(0).unwrap();
+            let pronumeral = term.pronumerals.first().unwrap();
             if variables.contains_key(pronumeral) {
                 dbg!();
                 return Err(Error::NotStandardForm);
@@ -64,7 +64,7 @@ impl TryFrom<Expr> for StandardForm {
         // sort by pronumeral
         let mut variables = variables.into_iter().collect::<Vec<_>>();
         variables.sort_by(|(a, _), (b, _)| a.cmp(b));
-        let variables = BTreeMap::from_iter(variables.into_iter());
+        let variables = BTreeMap::from_iter(variables);
 
         Ok(StandardForm {
             terms: variables,

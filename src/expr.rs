@@ -31,7 +31,7 @@ pub enum Op {
 }
 
 impl Expr {
-    pub fn terms(self) -> Vec<Expr> {
+    #[must_use] pub fn terms(self) -> Vec<Expr> {
         let mut acc = Vec::new();
         fn terms_inner(expr: Expr, acc: &mut Vec<Expr>) {
             match expr {
@@ -45,9 +45,7 @@ impl Expr {
                     let mut acc2 = Vec::new();
                     terms_inner(*rhs, &mut acc2);
 
-                    if acc2.len() != 1 {
-                        panic!("The rhs should always be one expr");
-                    }
+                    assert!(acc2.len() == 1, "The rhs should always be one expr");
                     let first = acc2.remove(0);
                     let expr = Expr::BinOp(Box::new(Expr::Num(0.0)), Op::Sub, Box::new(first));
                     acc.push(expr);
@@ -70,7 +68,7 @@ fn handle_error(error: Simple<Token>) -> Report<'static> {
             "Expected {}",
             error
                 .expected()
-                .filter_map(|x| x.as_ref().map(|x| x.to_string()))
+                .filter_map(|x| x.as_ref().map(std::string::ToString::to_string))
                 .collect::<String>()
         )),
         SimpleReason::Unclosed { .. } => {}
@@ -86,7 +84,6 @@ fn handle_error(error: Simple<Token>) -> Report<'static> {
 pub fn parse(tokens: Lexer<Token>) -> Result<Expr, Vec<Report>> {
     let tokens = tokens
         .spanned()
-        .into_iter()
         .filter(|(token, _)| token.is_ok())
         .collect::<Vec<_>>()
         .into_iter()
@@ -144,13 +141,15 @@ pub fn parse(tokens: Lexer<Token>) -> Result<Expr, Vec<Report>> {
                     }),
             )
             .map(|(sub, rhs)| {
-                if let Some(_) = sub {
+                if sub.is_some() {
                     Expr::BinOp(Box::new(Expr::Num(-1.0)), Op::Mul, Box::new(rhs))
                 } else {
                     rhs
                 }
             });
-        let addition = multiplication
+        
+
+        multiplication
             .clone()
             .then(
                 just(Token::Add)
@@ -165,9 +164,7 @@ pub fn parse(tokens: Lexer<Token>) -> Result<Expr, Vec<Report>> {
                     acc = Expr::BinOp(Box::new(acc), op, Box::new(rhs));
                 }
                 acc
-            });
-
-        addition
+            })
     });
 
     let equation = parser

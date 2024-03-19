@@ -9,7 +9,7 @@ pub struct Float(pub f64);
 
 impl Hash for Float {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.to_string().hash(state)
+        self.0.to_string().hash(state);
     }
 }
 

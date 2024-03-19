@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use nalgebra::*;
+use nalgebra::{DMatrix, MatrixXx1};
 
 use crate::standardform::StandardForm;
 
@@ -13,9 +13,7 @@ pub struct MatrixForm {
 
 impl From<Vec<StandardForm>> for MatrixForm {
     fn from(equations: Vec<StandardForm>) -> Self {
-        if equations.is_empty() {
-            panic!()
-        }
+        assert!(!equations.is_empty(), );
 
         let mut variables = Vec::new();
         let mut coefficients = Vec::new();
@@ -25,9 +23,7 @@ impl From<Vec<StandardForm>> for MatrixForm {
             variables.push(*variable);
         }
 
-        if equations.len() != variables.len() {
-            panic!();
-        }
+        assert!(equations.len() == variables.len(), );
 
         for variable in &variables {
             for equation in &equations {
@@ -52,11 +48,11 @@ impl From<Vec<StandardForm>> for MatrixForm {
 }
 
 impl MatrixForm {
-    pub fn solve(self) -> BTreeMap<char, f64> {
+    #[must_use] pub fn solve(self) -> BTreeMap<char, f64> {
         if !self.coefficients.is_invertible() {
             println!("This system is not solvable. Approximating solution");
         }
-        let inverse = self.coefficients.pseudo_inverse(0.00000000001).unwrap();
+        let inverse = self.coefficients.pseudo_inverse(0.000_000_000_01).unwrap();
 
         let solution = inverse * self.constants;
 

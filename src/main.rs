@@ -48,7 +48,7 @@ fn main() -> Result<()> {
             ":solve" => {
                 let standard_eqs = exprs
                     .take()
-                    .map(|exprs| exprs.into_iter().map(|expr| StandardForm::try_from(expr)))
+                    .map(|exprs| exprs.into_iter().map(StandardForm::try_from))
                     .unwrap()
                     .flatten()
                     .collect::<Vec<_>>();
@@ -67,7 +67,7 @@ fn main() -> Result<()> {
                 let lines = input.lines();
                 let equations = lines
                     .map(|line| {
-                        let tokens = Token::lexer(&line);
+                        let tokens = Token::lexer(line);
 
                         let expr = match parse(tokens) {
                             Ok(expr) => expr,
@@ -97,9 +97,7 @@ fn main() -> Result<()> {
             }
             ":terms" => {
                 for expr in exprs.take().unwrap() {
-                    let (lhs, rhs) = if let Expr::Equation(lhs, rhs) = expr {
-                        (lhs, rhs)
-                    } else {
+                    let Expr::Equation(lhs, rhs) = expr else {
                         panic!()
                     };
 
