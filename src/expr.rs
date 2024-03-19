@@ -1,4 +1,5 @@
 use ariadne::{Label, Report, ReportKind};
+use chumsky::error::SimpleReason;
 use chumsky::prelude::*;
 use chumsky::Stream;
 use logos::Lexer;
@@ -61,18 +62,28 @@ impl Expr {
     }
 }
 
-fn handle_errors(errors: Vec<Simple<Token>>) -> Report<'static> {
-    Report::build(ReportKind::Error, (), errors[0].span().start)
-        .with_message("An error occurred while parsing")
-        .with_labels(
-            errors.into_iter().map(|error| {
-                Label::new(error.span()).with_message("An error occurred while parsing")
-            }),
-        )
-        .finish()
+fn handle_error(error: Simple<Token>) -> Report<'static> {
+    let mut builder = Report::build(ReportKind::Error, (), error.span().start);
+
+    match error.reason() {
+        SimpleReason::Unexpected => builder.set_message(format!(
+            "Expected {}",
+            error
+                .expected()
+                .filter_map(|x| x.as_ref().map(|x| x.to_string()))
+                .collect::<String>()
+        )),
+        SimpleReason::Unclosed { .. } => {}
+        SimpleReason::Custom(message) => {
+            builder.set_message(message);
+            builder.add_label(Label::new(error.span()).with_message(message));
+        }
+    }
+
+    builder.finish()
 }
 
-pub fn parse(tokens: Lexer<Token>) -> Result<Expr, Report> {
+pub fn parse(tokens: Lexer<Token>) -> Result<Expr, Vec<Report>> {
     let tokens = tokens
         .spanned()
         .into_iter()
@@ -165,38 +176,12 @@ pub fn parse(tokens: Lexer<Token>) -> Result<Expr, Report> {
         .then(parser)
         .map(|(lhs, rhs)| Expr::Equation(Box::new(lhs), Box::new(rhs)));
 
-    equation
-        .parse(Stream::from_iter(0..tokens.len(), tokens.into_iter()))
-        .map_err(handle_errors)
+    let result = equation
+        .parse(Stream::from_iter(
+            0..ExactSizeIterator::len(&tokens),
+            tokens.into_iter(),
+        ))
+        .map_err(|errors| errors.into_iter().map(handle_error).collect::<Vec<_>>());
+
+    result
 }
-
-/*
-GRAMMAR
-
-EXPRESSION
-    : ADDITION
-    ;
-
-ADDITION
-    : ADDITION ('+' | '-') MULTIPLICATION
-    | MULTIPLICATION
-    ;
-
-MULTIPLICATION
-    : MULTIPLICATION ('*' | '/') EXPONENTIATION
-    | EXPONENTIATION
-    ;
-
-EXPONENTIATION
-    : EXPONENTIATION '^' BASIC
-    | BASIC
-    ;
-
-BASIC
-    : number
-    | identifier
-    | '"' EXPRESSION '"'
-    | '(' EXPRESSION ')'
-    ;
-
- */

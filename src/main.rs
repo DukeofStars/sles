@@ -67,13 +67,15 @@ fn main() -> Result<()> {
                 let lines = input.lines();
                 let equations = lines
                     .map(|line| {
-                        let source = Source::from(&input);
                         let tokens = Token::lexer(&line);
 
                         let expr = match parse(tokens) {
                             Ok(expr) => expr,
-                            Err(report) => {
-                                report.eprint(source).unwrap();
+                            Err(reports) => {
+                                for report in reports {
+                                    let source = Source::from(&input);
+                                    report.eprint(source).unwrap();
+                                }
                                 std::process::exit(1);
                             }
                         };
@@ -109,13 +111,15 @@ fn main() -> Result<()> {
                 exprs = Some(Vec::new());
             }
             _ => {
-                let source = Source::from(&input);
                 let tokens = Token::lexer(&input);
 
                 let expr = match parse(tokens) {
                     Ok(expr) => expr,
-                    Err(report) => {
-                        report.eprint(source)?;
+                    Err(reports) => {
+                        for report in reports {
+                            let source = Source::from(&input);
+                            report.eprint(source)?;
+                        }
                         continue;
                     }
                 };

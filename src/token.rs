@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
@@ -23,6 +24,12 @@ impl FromStr for Float {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Float(s.parse()?))
+    }
+}
+
+impl Display for Float {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 
@@ -61,4 +68,23 @@ pub enum Token {
     RParen,
     #[token("=")]
     Eq,
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Token::Pi => write!(f, "pi"),
+            Token::E => write!(f, "e"),
+            Token::Number(n) => write!(f, "{n}"),
+            Token::Pronumeral(c) => write!(f, "{c}"),
+            Token::Add => write!(f, "Add"),
+            Token::Sub => write!(f, "Sub"),
+            Token::Mul => write!(f, "Mul"),
+            Token::Div => write!(f, "Div"),
+            Token::Pow => write!(f, "Pow"),
+            Token::LParen => write!(f, "LParen"),
+            Token::RParen => write!(f, "RParen"),
+            Token::Eq => write!(f, "Eq"),
+        }
+    }
 }
