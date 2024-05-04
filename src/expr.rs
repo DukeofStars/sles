@@ -31,7 +31,7 @@ pub enum Op {
 }
 
 impl Expr {
-    #[must_use] pub fn terms(self) -> Vec<Expr> {
+    pub fn terms(self) -> Vec<Expr> {
         let mut acc = Vec::new();
         fn terms_inner(expr: Expr, acc: &mut Vec<Expr>) {
             match expr {
@@ -147,7 +147,6 @@ pub fn parse(tokens: Lexer<Token>) -> Result<Expr, Vec<Report>> {
                     rhs
                 }
             });
-        
 
         multiplication
             .clone()

@@ -13,7 +13,7 @@ pub struct MatrixForm {
 
 impl From<Vec<StandardForm>> for MatrixForm {
     fn from(equations: Vec<StandardForm>) -> Self {
-        assert!(!equations.is_empty(), );
+        assert!(!equations.is_empty(),);
 
         let mut variables = Vec::new();
         let mut coefficients = Vec::new();
@@ -23,7 +23,7 @@ impl From<Vec<StandardForm>> for MatrixForm {
             variables.push(*variable);
         }
 
-        assert!(equations.len() == variables.len(), );
+        assert!(equations.len() == variables.len(),);
 
         for variable in &variables {
             for equation in &equations {
@@ -48,7 +48,7 @@ impl From<Vec<StandardForm>> for MatrixForm {
 }
 
 impl MatrixForm {
-    #[must_use] pub fn solve(self) -> BTreeMap<char, f64> {
+    pub fn solve(self) -> BTreeMap<char, f64> {
         if !self.coefficients.is_invertible() {
             println!("This system is not solvable. Approximating solution");
         }

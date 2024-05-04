@@ -46,7 +46,7 @@ impl Display for Term {
     }
 }
 impl Term {
-    #[must_use] pub fn get_approximate_coefficient(&self) -> f64 {
+    pub fn get_approximate_coefficient(&self) -> f64 {
         let mut num = self.coeff;
         for constant in &self.constants {
             num *= match constant {
@@ -59,14 +59,14 @@ impl Term {
 }
 
 impl TermList {
-    #[must_use] pub fn from_expr(expr: Expr) -> TermList {
+    pub fn from_expr(expr: Expr) -> TermList {
         let terms = expr.terms();
         TermList::simplify(terms)
     }
 
     /// Simplifies a list of expr into a list of terms.
     /// Note that this does not handle all cases, and is best used for simple terms like 5x or (8+3)x
-    #[must_use] pub fn simplify(terms: Vec<Expr>) -> TermList {
+    pub fn simplify(terms: Vec<Expr>) -> TermList {
         fn simplify_inner(
             expr: &Expr,
             pronumerals: &mut Vec<char>,
