@@ -1,33 +1,25 @@
 use std::io::Write;
 
 use ariadne::Source;
-use color_eyre::Result;
+use color_eyre::{
+    eyre::{bail, Context},
+    Result,
+};
 use logos::Logos;
 
-use sles::expr::{parse, Expr};
-use sles::matrix::MatrixForm;
-use sles::standardform::StandardForm;
-use sles::termlist::TermList;
-use sles::token::Token;
+use sles::{
+    expr::{parse, Expr},
+    matrix::MatrixForm,
+    standardform::StandardForm,
+    termlist::TermList,
+    token::Token,
+};
 
-fn main() -> Result<()> {
-    println!("System of Linear Equations Solver");
-    println!("Type :help to learn more.");
-
-    let mut input = String::new();
-
-    let mut exprs = Some(Vec::new());
-
-    'rwloop: loop {
-        input.clear();
-
-        print!("> ");
-
-        std::io::stdout().flush()?;
-
-        let stdin = std::io::stdin();
-        stdin.read_line(&mut input)?;
-
+struct Repl {
+    exprs: Vec<Expr>,
+}
+impl Repl {
+    fn run(&mut self, input: String) -> Result<()> {
         match input.trim() {
             ":help" => {
                 println!("Enter any equation in standard form (ax + by = c)");
@@ -43,27 +35,32 @@ fn main() -> Result<()> {
                 println!("           (equation.txt)");
             }
             ":quit" => {
-                break 'rwloop;
+                std::process::exit(0);
             }
             ":solve" => {
-                let standard_eqs = exprs
-                    .take()
-                    .map(|exprs| exprs.into_iter().map(StandardForm::try_from))
-                    .unwrap()
-                    .flatten()
-                    .collect::<Vec<_>>();
+                {
+                    if self.exprs.is_empty() {
+                        bail!("No equations to solve.");
+                    };
 
-                let matrix = MatrixForm::from(standard_eqs);
-                let solutions = matrix.solve();
+                    let standard_eqs = std::mem::replace(&mut self.exprs, Vec::new())
+                        .into_iter()
+                        .map(StandardForm::try_from)
+                        .collect::<Result<Vec<_>, _>>()?;
 
-                for (var, val) in solutions {
-                    println!("{var} = {val}");
+                    let matrix = MatrixForm::try_from(standard_eqs)?;
+                    let solutions = matrix.solve();
+
+                    for (var, val) in solutions {
+                        println!("{var} = {val}");
+                    }
                 }
 
-                exprs = Some(Vec::new());
+                self.exprs = Vec::new();
             }
             ":file" => {
-                let input = std::fs::read_to_string("equation.txt").unwrap();
+                let input = std::fs::read_to_string("equation.txt")
+                    .wrap_err("Failed to read equation.txt")?;
                 let lines = input.lines();
                 let equations = lines
                     .map(|line| {
@@ -74,21 +71,23 @@ fn main() -> Result<()> {
                             Err(reports) => {
                                 for report in reports {
                                     let source = Source::from(&input);
-                                    report.eprint(source).unwrap();
+                                    report.eprint(source).wrap_err(
+                                        "Failed to write error to stdout (double error!)",
+                                    )?;
                                 }
-                                std::process::exit(1);
+                                bail!("Failed to parse");
                             }
                         };
-                        expr
+                        Ok(expr)
                     })
-                    .collect::<Vec<_>>();
+                    .collect::<Result<Vec<_>, _>>()?;
 
                 let standard_eqs = equations
                     .into_iter()
-                    .map(|expr| StandardForm::try_from(expr).unwrap())
-                    .collect::<Vec<_>>();
+                    .map(|expr| StandardForm::try_from(expr))
+                    .collect::<Result<Vec<_>, _>>()?;
 
-                let matrix = MatrixForm::from(standard_eqs);
+                let matrix = MatrixForm::try_from(standard_eqs)?;
                 let solutions = matrix.solve();
 
                 for (var, val) in solutions {
@@ -96,9 +95,14 @@ fn main() -> Result<()> {
                 }
             }
             ":terms" => {
-                for expr in exprs.take().unwrap() {
+                if self.exprs.is_empty() {
+                    bail!("No equations to solve.");
+                };
+
+                let exprs = std::mem::replace(&mut self.exprs, Vec::new());
+                for expr in exprs {
                     let Expr::Equation(lhs, rhs) = expr else {
-                        panic!()
+                        unreachable!("expr is guaranteed to be an equation by parser")
                     };
 
                     let lhs = TermList::from_expr(*lhs);
@@ -106,7 +110,7 @@ fn main() -> Result<()> {
                     println!("{lhs:?} = {rhs:?}");
                 }
 
-                exprs = Some(Vec::new());
+                self.exprs = Vec::new();
             }
             _ => {
                 let tokens = Token::lexer(&input);
@@ -118,14 +122,36 @@ fn main() -> Result<()> {
                             let source = Source::from(&input);
                             report.eprint(source)?;
                         }
-                        continue;
+                        bail!("Failed to parse");
                     }
                 };
-                if let Some(exprs) = &mut exprs {
-                    exprs.push(expr);
-                }
+                self.exprs.push(expr);
             }
         }
+        Ok(())
     }
-    Ok(())
+}
+
+fn main() -> Result<()> {
+    color_eyre::install()?;
+
+    println!("System of Linear Equations Solver");
+    println!("Type :help to learn more.");
+
+    let stdin = std::io::stdin();
+
+    let mut repl = Repl { exprs: Vec::new() };
+
+    loop {
+        print!("> ");
+
+        std::io::stdout().flush()?;
+
+        let mut input = String::new();
+        stdin.read_line(&mut input)?;
+
+        if let Err(err) = repl.run(input) {
+            eprintln!("{err}");
+        }
+    }
 }

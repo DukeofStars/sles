@@ -84,10 +84,10 @@ fn handle_error(error: Simple<Token>) -> Report<'static> {
 pub fn parse(tokens: Lexer<Token>) -> Result<Expr, Vec<Report>> {
     let tokens = tokens
         .spanned()
-        .filter(|(token, _)| token.is_ok())
+        .filter_map(|(token, span)| token.ok().map(|token| (token, span)))
         .collect::<Vec<_>>()
         .into_iter()
-        .map(|(token, span)| (token.unwrap(), span.start..span.end));
+        .map(|(token, span)| (token, span.start..span.end));
 
     let parser = recursive(|top_level| {
         let atom = filter_map(|span, token: Token| {

@@ -48,7 +48,7 @@ pub enum Token {
     #[regex("[0-9]+", | lex | lex.slice().parse().ok())]
     #[regex("[0-9]+\\.[0-9]+", | lex | lex.slice().parse().ok())]
     Number(Float),
-    #[regex("[a-zA-Z]", | lex | lex.slice().chars().next().unwrap())]
+    #[regex("[a-zA-Z]", | lex | lex.slice().chars().next().expect("There should be something"))]
     Pronumeral(char),
 
     // Symbols

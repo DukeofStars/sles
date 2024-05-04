@@ -1,8 +1,20 @@
 use std::collections::BTreeMap;
 
 use nalgebra::{DMatrix, MatrixXx1};
+use thiserror::Error;
 
 use crate::standardform::StandardForm;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("There are no equations to solve!")]
+    NoEquations,
+    #[error("There are not the same number of pronumerals as equations, this makes the equation unsolveable")]
+    MismatchedPronumeralCount,
+    #[error("The pronumeral {0} is found in equation 1, but not in equation {1}")]
+    PronumeralNotCommon(char, usize),
+}
+pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub struct MatrixForm {
@@ -11,9 +23,12 @@ pub struct MatrixForm {
     constants: MatrixXx1<f64>,
 }
 
-impl From<Vec<StandardForm>> for MatrixForm {
-    fn from(equations: Vec<StandardForm>) -> Self {
-        assert!(!equations.is_empty(),);
+impl TryFrom<Vec<StandardForm>> for MatrixForm {
+    type Error = Error;
+    fn try_from(equations: Vec<StandardForm>) -> Result<Self> {
+        if equations.is_empty() {
+            return Err(Error::NoEquations);
+        };
 
         let mut variables = Vec::new();
         let mut coefficients = Vec::new();
@@ -23,11 +38,16 @@ impl From<Vec<StandardForm>> for MatrixForm {
             variables.push(*variable);
         }
 
-        assert!(equations.len() == variables.len(),);
+        if equations.len() != variables.len() {
+            return Err(Error::MismatchedPronumeralCount);
+        };
 
         for variable in &variables {
-            for equation in &equations {
-                let coeff = equation.terms.get(variable).unwrap();
+            for (i, equation) in equations.iter().enumerate() {
+                let coeff = equation
+                    .terms
+                    .get(variable)
+                    .ok_or_else(|| Error::PronumeralNotCommon(*variable, i))?;
                 coefficients.push(*coeff);
             }
         }
@@ -39,11 +59,11 @@ impl From<Vec<StandardForm>> for MatrixForm {
         let coefficients = DMatrix::from_vec(variables.len(), equations.len(), coefficients);
         let constants = MatrixXx1::from_vec(constants);
 
-        MatrixForm {
+        Ok(MatrixForm {
             coefficients,
             variables,
             constants,
-        }
+        })
     }
 }
 
@@ -52,7 +72,10 @@ impl MatrixForm {
         if !self.coefficients.is_invertible() {
             println!("This system is not solvable. Approximating solution");
         }
-        let inverse = self.coefficients.pseudo_inverse(0.000_000_000_01).unwrap();
+        let inverse = self
+            .coefficients
+            .pseudo_inverse(0.000_000_000_01)
+            .expect("Epsilon guaranteed to be non negative");
 
         let solution = inverse * self.constants;
 

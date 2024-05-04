@@ -37,7 +37,10 @@ impl TryFrom<Expr> for StandardForm {
                 return Err(Error::NotStandardForm);
             }
 
-            let rhs = rhs.terms.first().unwrap();
+            let rhs = rhs
+                .terms
+                .first()
+                .expect("Already checked for empty termlist");
             if !rhs.pronumerals.is_empty() {
                 dbg!();
                 return Err(Error::NotStandardForm);
@@ -53,7 +56,10 @@ impl TryFrom<Expr> for StandardForm {
                 dbg!();
                 return Err(Error::NotStandardForm);
             }
-            let pronumeral = term.pronumerals.first().unwrap();
+            let pronumeral = term
+                .pronumerals
+                .first()
+                .expect("Already checked for empty termlist");
             if variables.contains_key(pronumeral) {
                 dbg!();
                 return Err(Error::NotStandardForm);
